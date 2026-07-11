@@ -56,6 +56,22 @@ a[href*="plus.excalidraw.com" i],
   clip: rect(0,0,0,0) !important;
 }
 
+/* Hide "Shareable link" card on Save/Export screen */
+.Card:has([aria-label="Export to Link"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  clip: rect(0,0,0,0) !important;
+}
+
+/* Hide top-right Share button */
+[aria-label="Share"],
+
 /* Hide Discord invite (sidebar) */
 a[href*="discord.gg" i],
 a[href*="discord.com/invite" i],
@@ -115,6 +131,9 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     '[aria-label*="Presentation"]',
     '[aria-label*="presentation"]',
     '[data-testid*="presentation"]',
+
+    /* -- Share button (top bar) -- */
+    '[aria-label="Share"]',
 
     /* -- Comments & Presentation Radix UI tabs (dynamic IDs) -- */
     '[id$="-trigger-comments"]',
