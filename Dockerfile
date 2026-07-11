@@ -27,6 +27,12 @@ a[href="https://excalidraw.com"] *,
 [aria-label*="Presentation" i],
 [aria-label*="presentation" i],
 
+/* Hide Comments & Presentation Radix UI sidebar tabs (dynamic IDs like radix-:rX:-trigger-*) */
+[id$="-trigger-comments"],
+[id$="-trigger-presentation"],
+[aria-controls$="-content-comments"],
+[aria-controls$="-content-presentation"],
+
 /* Hide Sign up / Sign in / Login buttons (header & sidebar) */
 [aria-label*="Sign up" i],
 [aria-label*="Sign in" i],
@@ -112,6 +118,12 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     '[aria-label*="presentation"]',
     '[data-testid*="presentation"]',
 
+    /* -- Comments & Presentation Radix UI tabs (dynamic IDs) -- */
+    '[id$="-trigger-comments"]',
+    '[id$="-trigger-presentation"]',
+    '[aria-controls$="-content-comments"]',
+    '[aria-controls$="-content-presentation"]',
+
     /* -- Sign up / Sign in / Login -- */
     '[aria-label*="Sign up"]',
     '[aria-label*="Sign in"]',
@@ -194,7 +206,21 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
 
     function startObserving() {
       if (document.body) {
-        observer = new MutationObserver(hideAll);
+        observer = new MutationObserver(function (mutations) {
+          hideAll();
+          /* Also strip any Simple Analytics scripts injected after load */
+          for (var m = 0; m < mutations.length; m++) {
+            var added = mutations[m].addedNodes;
+            for (var a = 0; a < added.length; a++) {
+              var node = added[a];
+              if (node.tagName === 'SCRIPT' && node.src &&
+                  (node.src.indexOf('simpleanalytics') !== -1 ||
+                   node.src.indexOf('sa.simpleanalytics') !== -1)) {
+                node.parentNode && node.parentNode.removeChild(node);
+              }
+            }
+          }
+        });
         observer.observe(document.body, { childList: true, subtree: true });
       } else {
         setTimeout(startObserving, 50);
@@ -203,13 +229,37 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
 
     startObserving();
   }
+
+  /* --- Strip any existing Simple Analytics <script> tags on load --- */
+  function stripSimpleAnalytics() {
+    var scripts = document.getElementsByTagName('script');
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      var src = scripts[i].src || '';
+      if (src.indexOf('simpleanalytics') !== -1 ||
+          src.indexOf('sa.simpleanalytics') !== -1) {
+        scripts[i].parentNode && scripts[i].parentNode.removeChild(scripts[i]);
+      }
+    }
+  }
+  stripSimpleAnalytics();
+  setTimeout(stripSimpleAnalytics, 1000);
+  setTimeout(stripSimpleAnalytics, 3000);
 })();
 JSEOF
 
 # ---------------------------------------------------------------------------
-# 3. Inject CSS + JS into every .html file served by nginx
+# 3. Build-time scrub: remove Simple Analytics references from JS bundles
+# ---------------------------------------------------------------------------
+RUN echo "[FitDraw] Scrubbing Simple Analytics from JS bundles..." && \
+    find /usr/share/nginx/html -type f -name '*.js' \
+      -exec sed -i 's|simpleanalyticscdn\.com|__BLOCKED__.invalid|gi' {} + && \
+    find /usr/share/nginx/html -type f -name '*.js' \
+      -exec sed -i 's|sa\.simpleanalytics|__BLOCKED__.invalid|gi' {} +
+
+# ---------------------------------------------------------------------------
+# 4. Inject CSS, JS, and CSP meta tag into every .html file
 # ---------------------------------------------------------------------------
 RUN for html in $(find /usr/share/nginx/html -maxdepth 1 -name '*.html' -type f 2>/dev/null); do \
       echo "[FitDraw] Patching ${html}"; \
-      sed -i "s|</head>|<link rel=\"stylesheet\" href=\"/fitdraw.css\">\n<script defer src=\"/fitdraw.js\"></script>\n</head>|" "$html"; \
+      sed -i "s|</head>|<meta http-equiv=\"Content-Security-Policy\" content=\"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:;\">\n<link rel=\"stylesheet\" href=\"/fitdraw.css\">\n<script defer src=\"/fitdraw.js\"></script>\n</head>|" "$html"; \
     done
