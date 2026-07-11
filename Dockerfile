@@ -69,8 +69,8 @@ a[href*="plus.excalidraw.com" i],
   clip: rect(0,0,0,0) !important;
 }
 
-/* Hide top-right Share button */
-[aria-label="Share"],
+/* Hide top-right Share button container */
+.excalidraw-ui-top-right,
 
 /* Hide Discord invite (sidebar) */
 a[href*="discord.gg" i],
@@ -132,8 +132,8 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     '[aria-label*="presentation"]',
     '[data-testid*="presentation"]',
 
-    /* -- Share button (top bar) -- */
-    '[aria-label="Share"]',
+    /* -- Share button container (top bar) -- */
+    '.excalidraw-ui-top-right',
 
     /* -- Comments & Presentation Radix UI tabs (dynamic IDs) -- */
     '[id$="-trigger-comments"]',
