@@ -265,7 +265,15 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
 JSEOF
 
 # ---------------------------------------------------------------------------
-# 3. Inject CSS, JS, and CSP meta tag into every .html file
+# 3. Strip Simple Analytics inline <script> block from HTML
+# ---------------------------------------------------------------------------
+RUN for html in $(find /usr/share/nginx/html -maxdepth 1 -name '*.html' -type f 2>/dev/null); do \
+      echo "[FitDraw] Stripping Simple Analytics from ${html}"; \
+      sed -i '/<script>/,/<\/script>/{/simpleanalyticscdn\.com/!b;:a;N;/<\/script>/!ba;d;}' "$html"; \
+    done
+
+# ---------------------------------------------------------------------------
+# 4. Inject CSS, JS, and CSP meta tag into every .html file
 # ---------------------------------------------------------------------------
 RUN for html in $(find /usr/share/nginx/html -maxdepth 1 -name '*.html' -type f 2>/dev/null); do \
       echo "[FitDraw] Patching ${html}"; \
