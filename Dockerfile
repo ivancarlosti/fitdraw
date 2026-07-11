@@ -56,28 +56,12 @@ a[href*="plus.excalidraw.com" i],
   clip: rect(0,0,0,0) !important;
 }
 
-/* Hide "Export to Link" card on Save dialog */
-.Card:has([aria-label="Export to Link"]) {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  position: absolute !important;
-  clip: rect(0,0,0,0) !important;
-}
-
 /* Hide Discord invite (sidebar) */
 a[href*="discord.gg" i],
 a[href*="discord.com/invite" i],
 a[href*="discord" i] *,
 [aria-label*="Discord" i],
 [title*="Discord" i],
-
-/* Hide "Export to Link" / "Shareable link" button */
-[aria-label="Export to Link"],
 
 /* Generic upsell / promo containers */
 [data-testid*="plus" i],
@@ -156,9 +140,6 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     '[aria-label*="Discord"]',
     '[title*="Discord"]',
 
-    /* -- Export to Link / Shareable link -- */
-    '[aria-label="Export to Link"]',
-
     /* -- Data attributes (generic) -- */
     '[data-testid*="plus"]',
     '[data-testid*="upgrade"]',
@@ -236,47 +217,12 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     } catch (_) {}
   }
 
-  /* --- patch: hide "Export to Link" card on Save dialog and Share dialog section --- */
-  function hideShareableLink() {
-    try {
-      var exportBtns = document.querySelectorAll('[aria-label="Export to Link"]');
-      for (var i = 0; i < exportBtns.length; i++) {
-        /* Hide parent Card (Save dialog) */
-        var card = exportBtns[i].closest('.Card');
-        if (card) {
-          card.style.cssText = HIDE_STYLE;
-          card.setAttribute('aria-hidden', 'true');
-          card.setAttribute('hidden', '');
-        }
-        /* Surgically hide the "Shareable link" section in the Share dialog:
-           walk up from the button through its siblings (description, header, separator) */
-        var btnContainer = exportBtns[i].closest('.ShareDialog__picker__button');
-        if (btnContainer) {
-          var el = btnContainer;
-          /* Hide the button container and walk back through previous siblings */
-          while (el) {
-            el.style.cssText = HIDE_STYLE;
-            el.setAttribute('aria-hidden', 'true');
-            el.setAttribute('hidden', '');
-            var prev = el.previousElementSibling;
-            /* Stop when we hit a non-ShareDialog element or no more siblings */
-            if (!prev) break;
-            var cn = prev.className || '';
-            if (cn.indexOf('ShareDialog__') === -1) break;
-            el = prev;
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
   /* --- apply all patches --- */
   function applyPatches() {
     patchGitHubLink();
     patchTwitterLink();
     patchPageTitle();
     hideExcalidrawPlusCard();
-    hideShareableLink();
   }
 
   /* --- run in waves to catch late-rendered elements --- */
