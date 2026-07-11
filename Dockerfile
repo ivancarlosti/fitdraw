@@ -79,12 +79,6 @@ a[href*="discord" i] *,
 /* Hide "Export to Link" / "Shareable link" button */
 [aria-label="Export to Link"],
 
-/* Hide Share dialog "Shareable link" section */
-.ShareDialog__separator,
-.ShareDialog__picker__header,
-.ShareDialog__picker__description,
-.ShareDialog__picker__button,
-
 /* Generic upsell / promo containers */
 [data-testid*="plus" i],
 [data-testid*="upgrade" i],
@@ -164,10 +158,6 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
 
     /* -- Export to Link / Shareable link -- */
     '[aria-label="Export to Link"]',
-    '.ShareDialog__separator',
-    '.ShareDialog__picker__header',
-    '.ShareDialog__picker__description',
-    '.ShareDialog__picker__button',
 
     /* -- Data attributes (generic) -- */
     '[data-testid*="plus"]',
@@ -249,29 +239,32 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
   /* --- patch: hide "Export to Link" card on Save dialog and Share dialog section --- */
   function hideShareableLink() {
     try {
-      /* Hide Card containing the Export to Link button (Save dialog) */
       var exportBtns = document.querySelectorAll('[aria-label="Export to Link"]');
       for (var i = 0; i < exportBtns.length; i++) {
+        /* Hide parent Card (Save dialog) */
         var card = exportBtns[i].closest('.Card');
         if (card) {
           card.style.cssText = HIDE_STYLE;
           card.setAttribute('aria-hidden', 'true');
           card.setAttribute('hidden', '');
         }
-      }
-      /* Hide ShareDialog "Shareable link" section by class name */
-      var shareClasses = [
-        '.ShareDialog__separator',
-        '.ShareDialog__picker__header',
-        '.ShareDialog__picker__description',
-        '.ShareDialog__picker__button'
-      ];
-      for (var c = 0; c < shareClasses.length; c++) {
-        var els = document.querySelectorAll(shareClasses[c]);
-        for (var e = 0; e < els.length; e++) {
-          els[e].style.cssText = HIDE_STYLE;
-          els[e].setAttribute('aria-hidden', 'true');
-          els[e].setAttribute('hidden', '');
+        /* Surgically hide the "Shareable link" section in the Share dialog:
+           walk up from the button through its siblings (description, header, separator) */
+        var btnContainer = exportBtns[i].closest('.ShareDialog__picker__button');
+        if (btnContainer) {
+          var el = btnContainer;
+          /* Hide the button container and walk back through previous siblings */
+          while (el) {
+            el.style.cssText = HIDE_STYLE;
+            el.setAttribute('aria-hidden', 'true');
+            el.setAttribute('hidden', '');
+            var prev = el.previousElementSibling;
+            /* Stop when we hit a non-ShareDialog element or no more siblings */
+            if (!prev) break;
+            var cn = prev.className || '';
+            if (cn.indexOf('ShareDialog__') === -1) break;
+            el = prev;
+          }
         }
       }
     } catch (_) {}
