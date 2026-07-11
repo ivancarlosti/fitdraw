@@ -1,0 +1,31 @@
+name: desenho
+
+services:
+  excalidraw:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: fitdraw/excalidraw:latest
+    container_name: desenho-frontend
+    ports:
+      - "3030:80"
+    environment:
+      # Directs the frontend to look at your self-hosted collaboration server
+      - VITE_APP_WS_SERVER_URL=https://desenho.icc.gg
+      # Disables the main cloud workspace export functions
+      - VITE_APP_PLUS_APP_URL=false
+    restart: unless-stopped
+    # This entrypoint automatically replaces the hardcoded public URLs inside
+    # the container's Nginx folder with your local environment variables on startup.
+    entrypoint: /bin/sh
+    command: >
+      -c "echo 'Patching WebSocket URL...' &&
+          find /usr/share/nginx/html/ -type f -name '*.js' -exec sed -i \"s|https://oss-collab.excalidraw.com|$${VITE_APP_WS_SERVER_URL}|g\" {} + &&
+          nginx -g 'daemon off;'"
+
+  excalidraw-room:
+    image: excalidraw/excalidraw-room:latest
+    container_name: desenho-backend
+    ports:
+      - "8082:80"
+    restart: unless-stopped
