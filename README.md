@@ -1,10 +1,10 @@
 # FitDraw
 
-**A cleaned, white-label distribution of [Excalidraw](https://github.com/excalidraw/excalidraw)** — the open-source virtual whiteboard for sketching hand-drawn diagrams. FitDraw strips all branding, promotional links, sign-up nudges, social media buttons, analytics, and collaboration upsells from the UI, leaving only the drawing tool.
+**A cleaned, white-label distribution of [Excalidraw](https://github.com/excalidraw/excalidraw)** — the open-source virtual whiteboard for sketching hand-drawn diagrams. FitDraw strips branding, promotional links, sign-up nudges, analytics, and collaboration upsells from the UI. Social links (GitHub, X/Twitter) are redirected to FitDraw's own profiles, and the page title is set to **Fitdraw Whiteboard**.
 
 ---
 
-## What gets removed
+## What gets removed or patched
 
 | UI Element | Location | Method |
 |---|---|---|
@@ -13,9 +13,11 @@
 | Excalidraw+ / Plus / Upgrade | Sidebar & toolbar | CSS + JS: `aria-label`, `href` |
 | Comments tab | Sidebar (Radix UI tab) | CSS `[id$="-trigger-comments"]` + JS |
 | Presentation tab | Sidebar (Radix UI tab) | CSS `[id$="-trigger-presentation"]` + JS |
-| GitHub link | Sidebar | CSS + JS: `href*="github.com/excalidraw"` |
-| Twitter / X "Follow us" | Sidebar | CSS + JS: `href*="twitter.com"`, `href*="x.com"` |
+| Page title | `<title>` tag | JS: `document.title = 'Fitdraw Whiteboard'` |
+| GitHub link | Sidebar | Patched → `github.com/ivancarlosti/fitdraw` |
+| Twitter / X "Follow us" | Sidebar | Patched → `x.com/ivancarlos` |
 | Discord invite | Sidebar | CSS + JS: `href*="discord.gg"` |
+| Excalidraw+ promo card | Save/Export dialog | CSS `.Card:has(.ExcalidrawLogo)` + JS |
 | Simple Analytics tracking | `<script>` injection | 3-layer defense (see below) |
 
 ---
@@ -38,12 +40,15 @@ a[href="https://excalidraw.com"] * { display: none !important; }
 [id$="-trigger-presentation"] { display: none !important; }
 ```
 
-### Layer 2 — JavaScript MutationObserver ([`fitdraw.js`](Dockerfile:98-248))
+### Layer 2 — JavaScript MutationObserver ([`fitdraw.js`](Dockerfile:96-310))
 
 A self-executing script that:
 
-- Runs `hideAll()` in waves (0 ms, 800 ms, 2 s, 5 s after `DOMContentLoaded`) to catch elements rendered after initial paint.
-- Installs a [`MutationObserver`](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) on `document.body` that re-applies hiding whenever React re-renders the DOM.
+- Runs `hideAll()` and `applyPatches()` in waves (0 ms, 800 ms, 2 s, 5 s after `DOMContentLoaded`) to catch elements rendered after initial paint.
+- Installs a [`MutationObserver`](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) on `document.body` that re-applies both hiding and patching whenever React re-renders the DOM.
+- **Patches social links:** GitHub link → `github.com/ivancarlosti/fitdraw`, Twitter/X link → `x.com/ivancarlos`.
+- **Sets page title** to `Fitdraw Whiteboard`.
+- **Hides the Excalidraw+ promo card** on the Save/Export dialog (`.Card:has(.ExcalidrawLogo)` + JS fallback).
 - Scans for and removes any `<script>` tags loading from `simpleanalyticscdn.com` or `sa.simpleanalytics` — both on page load and via the observer.
 
 ### Layer 3 — Build-time `sed` scrub ([Dockerfile:253-257](Dockerfile:253))

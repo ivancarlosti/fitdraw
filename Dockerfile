@@ -43,20 +43,18 @@ a[href="https://excalidraw.com"] *,
 a[href*="plus.excalidraw.com" i],
 [href*="plus.excalidraw.com" i],
 
-/* Hide GitHub link (sidebar) */
-a[href*="github.com/excalidraw" i],
-a[href*="github.com/excalidraw" i] *,
-[aria-label*="GitHub" i],
-[title*="GitHub" i],
-
-/* Hide Twitter / X  / "Follow us" (sidebar) */
-a[href*="twitter.com/excalidraw" i],
-a[href*="x.com/excalidraw" i],
-a[href*="x.com/excalidraw" i] *,
-[aria-label*="Twitter" i],
-[aria-label*="Follow us" i],
-[title*="Twitter" i],
-[title*="Follow us" i],
+/* Hide Excalidraw+ promo card on Save/Export screen */
+.Card:has(.ExcalidrawLogo) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  clip: rect(0,0,0,0) !important;
+}
 
 /* Hide Discord invite (sidebar) */
 a[href*="discord.gg" i],
@@ -136,19 +134,6 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     'a[href*="login"]',
     'a[href*="log-in"]',
 
-    /* -- GitHub -- */
-    'a[href*="github.com/excalidraw"]',
-    '[aria-label*="GitHub"]',
-    '[title*="GitHub"]',
-
-    /* -- Twitter / X / Follow us -- */
-    'a[href*="twitter.com/excalidraw"]',
-    'a[href*="x.com/excalidraw"]',
-    '[aria-label*="Twitter"]',
-    '[aria-label*="Follow us"]',
-    '[title*="Twitter"]',
-    '[title*="Follow us"]',
-
     /* -- Discord -- */
     'a[href*="discord.gg"]',
     'a[href*="discord.com/invite"]',
@@ -186,12 +171,70 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     }
   }
 
+  /* --- patch: change GitHub link to FitDraw repo --- */
+  function patchGitHubLink() {
+    try {
+      var ghLinks = document.querySelectorAll('a[href*="github.com/excalidraw"]');
+      for (var i = 0; i < ghLinks.length; i++) {
+        ghLinks[i].setAttribute('href', 'https://github.com/ivancarlosti/fitdraw');
+        ghLinks[i].setAttribute('aria-label', 'FitDraw on GitHub');
+        ghLinks[i].setAttribute('title', 'FitDraw on GitHub');
+      }
+    } catch (_) {}
+  }
+
+  /* --- patch: change Twitter/X link to ivancarlos --- */
+  function patchTwitterLink() {
+    try {
+      var twLinks = document.querySelectorAll('a[href*="twitter.com/excalidraw"], a[href*="x.com/excalidraw"]');
+      for (var i = 0; i < twLinks.length; i++) {
+        twLinks[i].setAttribute('href', 'https://x.com/ivancarlos');
+        twLinks[i].setAttribute('aria-label', 'Follow @ivancarlos on X');
+        twLinks[i].setAttribute('title', 'Follow @ivancarlos on X');
+      }
+    } catch (_) {}
+  }
+
+  /* --- patch: set page title to Fitdraw Whiteboard --- */
+  function patchPageTitle() {
+    try {
+      document.title = 'Fitdraw Whiteboard';
+    } catch (_) {}
+  }
+
+  /* --- patch: hide Excalidraw+ promo card on Save/Export screen --- */
+  function hideExcalidrawPlusCard() {
+    try {
+      var logos = document.querySelectorAll('.ExcalidrawLogo');
+      for (var i = 0; i < logos.length; i++) {
+        var card = logos[i].closest('.Card');
+        if (card) {
+          card.style.cssText = HIDE_STYLE;
+          card.setAttribute('aria-hidden', 'true');
+          card.setAttribute('hidden', '');
+        }
+      }
+    } catch (_) {}
+  }
+
+  /* --- apply all patches --- */
+  function applyPatches() {
+    patchGitHubLink();
+    patchTwitterLink();
+    patchPageTitle();
+    hideExcalidrawPlusCard();
+  }
+
   /* --- run in waves to catch late-rendered elements --- */
   function scheduleRuns() {
     hideAll();
+    applyPatches();
     setTimeout(hideAll, 800);
+    setTimeout(applyPatches, 800);
     setTimeout(hideAll, 2000);
+    setTimeout(applyPatches, 2000);
     setTimeout(hideAll, 5000);
+    setTimeout(applyPatches, 5000);
   }
 
   if (document.readyState === 'loading') {
@@ -208,6 +251,7 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
       if (document.body) {
         observer = new MutationObserver(function (mutations) {
           hideAll();
+          applyPatches();
           /* Also strip any Simple Analytics scripts injected after load */
           for (var m = 0; m < mutations.length; m++) {
             var added = mutations[m].addedNodes;
