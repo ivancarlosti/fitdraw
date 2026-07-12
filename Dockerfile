@@ -27,11 +27,18 @@ a[href="https://excalidraw.com"] *,
 [aria-label*="Presentation" i],
 [aria-label*="presentation" i],
 
+/* Hide AI Magic Frame button */
+[data-testid="toolbar-magicframe"],
+
 /* Hide Comments & Presentation Radix UI sidebar tabs (dynamic IDs like radix-:rX:-trigger-*) */
 [id$="-trigger-comments"],
 [id$="-trigger-presentation"],
 [aria-controls$="-content-comments"],
 [aria-controls$="-content-presentation"],
+
+/* Hide Text-to-Diagram AI tab in Mermaid dialog */
+[id$="-trigger-text-to-diagram"],
+[aria-controls$="-content-text-to-diagram"],
 
 /* Hide Sign up / Sign in / Login buttons (header & sidebar) */
 [aria-label*="Sign up" i],
@@ -135,11 +142,18 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     /* -- Share button container (top bar) -- */
     '.excalidraw-ui-top-right',
 
+    /* -- AI Magic Frame (toolbar) -- */
+    '[data-testid="toolbar-magicframe"]',
+
     /* -- Comments & Presentation Radix UI tabs (dynamic IDs) -- */
     '[id$="-trigger-comments"]',
     '[id$="-trigger-presentation"]',
     '[aria-controls$="-content-comments"]',
     '[aria-controls$="-content-presentation"]',
+
+    /* -- Text-to-Diagram AI tab (Mermaid dialog) -- */
+    '[id$="-trigger-text-to-diagram"]',
+    '[aria-controls$="-content-text-to-diagram"]',
 
     /* -- Sign up / Sign in / Login -- */
     '[aria-label*="Sign up"]',

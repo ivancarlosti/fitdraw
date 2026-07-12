@@ -15,6 +15,8 @@ FitDraw removes branding, promotional links, sign-up nudges, analytics, and coll
 - Discord invite
 - Excalidraw+ promo card on the export dialog
 - GitHub and Twitter/X links → redirected to FitDraw profiles
+- AI features (Magic Frame, Text-to-Diagram)
+- Share button and Shareable link card
 
 ---
 
