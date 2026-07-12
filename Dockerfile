@@ -27,6 +27,9 @@ a[href="https://excalidraw.com"] *,
 [aria-label*="Presentation" i],
 [aria-label*="presentation" i],
 
+/* Hide AI Badge on menu items */
+.DropDownMenuItemBadge,
+
 /* Hide AI Magic Frame button */
 [data-testid="toolbar-magicframe"],
 
@@ -65,6 +68,19 @@ a[href*="plus.excalidraw.com" i],
 
 /* Hide "Shareable link" card on Save/Export screen */
 .Card:has([aria-label="Export to Link"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  clip: rect(0,0,0,0) !important;
+}
+
+/* Hide any menu item containing an AI badge */
+.radix-menu-item:has(.DropDownMenuItemBadge) {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -141,6 +157,10 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
 
     /* -- Share button container (top bar) -- */
     '.excalidraw-ui-top-right',
+
+    /* -- AI Badge and menu items -- */
+    '.DropDownMenuItemBadge',
+    '.radix-menu-item:has(.DropDownMenuItemBadge)',
 
     /* -- AI Magic Frame (toolbar) -- */
     '[data-testid="toolbar-magicframe"]',
