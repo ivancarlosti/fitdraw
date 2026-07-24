@@ -5,16 +5,16 @@
 FitDraw removes branding, promotional links, sign-up nudges, analytics, and collaboration upsells from the UI. Social links are redirected to FitDraw's own profiles, and the page title is set to **Fitdraw Whiteboard**.
 
 <!-- buttons -->
-[![Stars](https://img.shields.io/github/stars/ivancarlosti/ivancarlosti?label=⭐%20Stars&color=gold&style=flat)](https://github.com/ivancarlosti/ivancarlosti/stargazers)
-[![Watchers](https://img.shields.io/github/watchers/ivancarlosti/ivancarlosti?label=Watchers&style=flat&color=red)](https://github.com/sponsors/ivancarlosti)
-[![Forks](https://img.shields.io/github/forks/ivancarlosti/ivancarlosti?label=Forks&style=flat&color=ff69b4)](https://github.com/sponsors/ivancarlosti)
-[![Downloads](https://img.shields.io/github/downloads/ivancarlosti/ivancarlosti/total?label=Downloads&color=success)](https://github.com/ivancarlosti/ivancarlosti/releases)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ivancarlosti/ivancarlosti?label=Activity)](https://github.com/ivancarlosti/ivancarlosti/pulse)
-[![GitHub Issues](https://img.shields.io/github/issues/ivancarlosti/ivancarlosti?label=Issues&color=orange)](https://github.com/ivancarlosti/ivancarlosti/issues)  
-[![License](https://img.shields.io/github/license/ivancarlosti/ivancarlosti?label=License)](LICENSE)
-[![GitHub last commit](https://img.shields.io/github/last-commit/ivancarlosti/ivancarlosti?label=Last%20Commit)](https://github.com/ivancarlosti/ivancarlosti/commits)
-[![Security](https://img.shields.io/badge/Security-View%20Here-purple)](https://github.com/ivancarlosti/ivancarlosti/security)
-[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-2.1-4baaaa)](https://github.com/ivancarlosti/ivancarlosti?tab=coc-ov-file)
+[![Stars](https://img.shields.io/github/stars/ivancarlosti/fitdraw?label=⭐%20Stars&color=gold&style=flat)](https://github.com/ivancarlosti/fitdraw/stargazers)
+[![Watchers](https://img.shields.io/github/watchers/ivancarlosti/fitdraw?label=Watchers&style=flat&color=red)](https://github.com/sponsors/ivancarlosti)
+[![Forks](https://img.shields.io/github/forks/ivancarlosti/fitdraw?label=Forks&style=flat&color=ff69b4)](https://github.com/sponsors/ivancarlosti)
+[![Downloads](https://img.shields.io/github/downloads/ivancarlosti/fitdraw/total?label=Downloads&color=success)](https://github.com/ivancarlosti/fitdraw/releases)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ivancarlosti/fitdraw?label=Activity)](https://github.com/ivancarlosti/fitdraw/pulse)
+[![GitHub Issues](https://img.shields.io/github/issues/ivancarlosti/fitdraw?label=Issues&color=orange)](https://github.com/ivancarlosti/fitdraw/issues)  
+[![License](https://img.shields.io/github/license/ivancarlosti/fitdraw?label=License)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/ivancarlosti/fitdraw?label=Last%20Commit)](https://github.com/ivancarlosti/fitdraw/commits)
+[![Security](https://img.shields.io/badge/Security-View%20Here-purple)](https://github.com/ivancarlosti/fitdraw/security)
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-2.1-4baaaa)](https://github.com/ivancarlosti/fitdraw?tab=coc-ov-file)
 <!-- endbuttons -->
 
 ## What's removed
@@ -98,4 +98,3 @@ FitDraw is a distribution of [Excalidraw](https://github.com/excalidraw/excalidr
 [prt]: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository
 [funding]: https://docs.github.com/en/articles/displaying-a-sponsor-button-in-your-repository
 [ivancarlos]: https://ivancarlos.me
-
