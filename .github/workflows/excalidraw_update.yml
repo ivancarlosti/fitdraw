@@ -5,16 +5,19 @@ on:
     - cron: '0 3 * * *' # Every day at 03:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write       # required to dispatch semantic-release.yml / build.yml
+
 jobs:
   check-and-update:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Fetch Latest Excalidraw Release Tag
         id: excalidraw_version
@@ -25,50 +28,58 @@ jobs:
             exit 1
           fi
           echo "Latest Excalidraw Tag is: $LATEST_TAG"
-          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-
-      - name: Get Current Tracked Version
-        id: current_version
-        run: |
-          CURRENT_TAG=$(cat .excalidraw-version 2>/dev/null || echo "none")
-          echo "Current tracked Excalidraw Tag is: $CURRENT_TAG"
-          echo "tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Compare and Update Version File
         id: update_check
+        env:
+          LATEST: ${{ steps.excalidraw_version.outputs.tag }}
         run: |
-          LATEST="${{ steps.excalidraw_version.outputs.tag }}"
-          CURRENT="${{ steps.current_version.outputs.tag }}"
-
+          CURRENT=$(cat .excalidraw-version 2>/dev/null || echo "none")
+          echo "Current tracked Excalidraw Tag is: $CURRENT"
           if [ "$LATEST" != "$CURRENT" ]; then
             echo "New version found ($LATEST). Updating .excalidraw-version."
             echo "$LATEST" > .excalidraw-version
-            echo "should_trigger=true" >> $GITHUB_OUTPUT
+            echo "updated=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Already tracking the latest Excalidraw version ($CURRENT). No update needed."
-            echo "should_trigger=false" >> $GITHUB_OUTPUT
-          fi
-
-          # Always trigger on manual workflow_dispatch
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "Manual trigger — forcing rebuild."
-            echo "should_trigger=true" >> $GITHUB_OUTPUT
+            echo "Already tracking the latest Excalidraw version ($CURRENT)."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Commit and Push Changes
-        if: steps.update_check.outputs.should_trigger == 'true'
+        if: steps.update_check.outputs.updated == 'true'
+        env:
+          LATEST: ${{ steps.excalidraw_version.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .excalidraw-version
-          git commit -m "chore: Update Excalidraw version to ${{ steps.excalidraw_version.outputs.tag }}" || echo "No changes to commit"
-          git push origin main
+          # Conventional type: semantic-release turns fix: into a patch release,
+          # which then dispatches build.yml for the new tag.
+          git commit -m "fix(deps): update Excalidraw to ${LATEST}"
+          git push origin HEAD:main
 
-      - name: Trigger Release Build
-        if: steps.update_check.outputs.should_trigger == 'true'
+      - name: Trigger Semantic Release
+        if: steps.update_check.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Give GitHub a moment to register the push
+          # A push made with GITHUB_TOKEN does not start other workflows, so the
+          # commit above never reaches semantic-release on its own. Dispatch it.
           sleep 5
-          gh workflow run release_build.yml --ref main
+          gh workflow run semantic-release.yml --ref main
+
+      - name: Manual run with no new Excalidraw — rebuild current release
+        if: steps.update_check.outputs.updated == 'false' && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Keeps the old "manual run forces a rebuild" behaviour: rebuild the
+          # newest existing release tag without creating a new version.
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -z "$TAG" ]; then
+            echo "No release tag found; nothing to rebuild."
+            exit 0
+          fi
+          echo "Rebuilding existing release ${TAG}"
+          gh workflow run build.yml --ref main -f version="${TAG}"
