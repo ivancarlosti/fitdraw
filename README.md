@@ -22,6 +22,8 @@ FitDraw removes branding, promotional links, sign-up nudges, analytics, and coll
 - Excalidraw logo and home button
 - Sign up / Sign in / Login buttons
 - Excalidraw+ / Plus / Upgrade prompts
+- Excalidraw+ entry in the main (hamburger) menu
+- Help dialog header (documentation / blog / GitHub issues / YouTube links)
 - Comments and Presentation tabs
 - Discord invite
 - Excalidraw+ promo card on the export dialog
@@ -45,6 +47,35 @@ FitDraw removes branding, promotional links, sign-up nudges, analytics, and coll
   browsing and installing libraries behaves as upstream.
 - **A build-time host gate.** `selfhost/scrub.mjs` rewrites every other `*.excalidraw.com` URL and
   fails the build if one survives, so an upstream change can never silently leak traffic.
+- **Plain labels.** `selfhost/ui-labels.mjs` renames the Mermaid integration to just *Mermaid* — in
+  the "More tools" menu, the command palette and the dialog title, for every bundled locale — and
+  fails the build if the upstream key or wording disappears.
+
+---
+
+## Screenshots
+
+Everything below is a stock FitDraw build in a fresh browser profile — no extensions, no upstream
+account.
+
+**Main menu** — the Excalidraw+ entry, sign-up button and Discord invite are gone; GitHub and the
+social link point at FitDraw:
+
+![FitDraw main menu](docs/screenshots/main-menu.png)
+
+**More tools → Generate** — the diagram integration is listed as *Mermaid* (upstream calls it
+"Mermaid to Excalidraw"):
+
+![Mermaid entry in the More tools menu](docs/screenshots/mermaid-tool.png)
+
+**Mermaid dialog** — paste a Mermaid definition, preview it live and insert it as editable shapes:
+
+![Mermaid dialog](docs/screenshots/mermaid-dialog.png)
+
+**Help dialog** — the upstream header links (docs, blog, GitHub issues, YouTube) are hidden, the
+shortcut reference is untouched:
+
+![Help dialog](docs/screenshots/help-dialog.png)
 
 ---
 
@@ -110,11 +141,14 @@ Client setup for Claude Code, Claude Desktop, Cursor and plain `curl`: [docs/mcp
 
 ## TLS / reverse proxy
 
-Everything is served on container port `80`; terminate TLS in front of it and keep two things intact:
+Everything is served on container port `80`; terminate TLS in front of it and keep three things intact:
 
-- forward `Upgrade`/`Connection` (websocket collaboration on `/socket.io/`), and
+- forward `Upgrade`/`Connection` (websocket collaboration on `/socket.io/`),
 - leave `/mcp-ui/**` response headers alone — the MCP App iframe needs
-  `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`.
+  `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`, and
+- don't add `unload=()` to a `Permissions-Policy` you set at the proxy: the container already opts
+  `unload` back in so Excalidraw's handlers keep working (see
+  [docs/self-hosting.md](docs/self-hosting.md#unload-and-chromes-permissions-policy)).
 
 Caddy needs nothing but `reverse_proxy 127.0.0.1:3030`. An nginx example, plus notes on rate-limiting
 `/mcp`, lives in [docs/self-hosting.md](docs/self-hosting.md#tls--reverse-proxy). Remember to set

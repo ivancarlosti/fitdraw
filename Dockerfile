@@ -60,15 +60,18 @@ RUN node /tmp/mirror-mcp-ui.mjs --app /mcp/dist/mcp-app.html --out /mcp-ui --mod
 
 # ---------------------------------------------------------------------------
 # Frontend: rewrite every Excalidraw-owned host (Library excepted), drop the
-# 23 MB of sourcemaps and the excalidraw.com SEO files. scrub.mjs fails the
-# build if a forbidden host survives or the Library wiring disappears.
+# 23 MB of sourcemaps and the excalidraw.com SEO files, then shorten upstream
+# labels. Both scripts are build gates: scrub.mjs fails the build if a
+# forbidden host survives or the Library wiring disappears, ui-labels.mjs fails
+# it if an upstream wording/key it rewrites is gone.
 # ---------------------------------------------------------------------------
 FROM excalidraw/excalidraw:latest AS excalidraw-dist
 
 FROM ${NODE_IMAGE} AS frontend
 COPY --from=excalidraw-dist /usr/share/nginx/html /html
-COPY selfhost/scrub.mjs /scrub.mjs
-RUN node /scrub.mjs /html
+COPY selfhost/scrub.mjs selfhost/ui-labels.mjs /
+RUN node /scrub.mjs /html \
+ && node /ui-labels.mjs /html
 
 FROM excalidraw/excalidraw:latest
 
@@ -157,6 +160,15 @@ a[href="/"] *,
 [aria-label*="Upgrade" i],
 [aria-label*="upgrade" i],
 [aria-label*="Pro" i],
+
+/* Hide the Excalidraw+ entry in the hamburger menu. Upstream links to the Plus
+   app; the build scrubs the host, leaving a dead "//plus?utm_content=hamburger"
+   URL that no longer matches the plus.excalidraw.com rules below. */
+a[href*="utm_content=hamburger" i],
+a[href^="//plus"],
+
+/* Hide the Help dialog header (Documentation / Blog / GitHub / YouTube buttons) */
+.HelpDialog__header,
 
 /* Hide Comments toggle button */
 [aria-label*="Comment" i],
@@ -285,6 +297,11 @@ RUN cat > /usr/share/nginx/html/fitdraw.js << 'JSEOF'
     '[aria-label*="Upgrade"]',
     '[aria-label*="Pro"]',
     'a[href*="plus.excalidraw.com"]',
+    'a[href*="utm_content=hamburger"]',
+    'a[href^="//plus"]',
+
+    /* -- Help dialog header -- */
+    '.HelpDialog__header',
 
     /* -- Comments -- */
     '[aria-label*="Comment"]',

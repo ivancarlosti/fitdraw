@@ -64,11 +64,13 @@ import map at start-up. A wrong value produces links and frames that only work b
 
 ## TLS / reverse proxy
 
-The container speaks plain HTTP on `80`; terminate TLS in front of it. Two rules matter:
+The container speaks plain HTTP on `80`; terminate TLS in front of it. Three rules matter:
 
 1. forward `Upgrade`/`Connection` for `/socket.io/` (websocket collaboration);
 2. do not rewrite or strip `/mcp-ui/**` response headers — the MCP iframe needs
-   `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`.
+   `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`;
+3. if you set `Permissions-Policy` at the proxy, leave `unload` out of it — see
+   [`unload` and Chrome's Permissions Policy](#unload-and-chromes-permissions-policy).
 
 **Caddy** (simplest):
 
@@ -106,6 +108,40 @@ server {
 
 Then set `FITDRAW_PUBLIC_URL=https://fitdraw.example.com` — the browser-facing origin, not the
 container address.
+
+### `unload` and Chrome's Permissions Policy
+
+Chrome now ships `unload` with an empty default allowlist: unload handlers do not run unless the
+document opts in, and DevTools logs
+
+```
+[Violation] Permissions policy violation: unload is not allowed in this document.
+```
+
+for every registration. Excalidraw registers three of them — flush the local save, tear down the
+collab socket, blur the editor — so a current Chrome tab shows the message even though nothing is
+broken. The container answers with
+
+```
+Permissions-Policy: unload=(self)
+```
+
+on `/index.html` (and only there; assets and `/mcp-ui/**` are left alone) to keep upstream behaviour.
+
+A proxy is usually *not* involved: the message appears with no `Permissions-Policy` header at all.
+But if you do emit one, keep in mind that policies from several headers are intersected, so a stray
+`unload=()` — common in copy-pasted hardening snippets — overrides the container.
+
+To follow Chrome's new default instead, remove the `add_header Permissions-Policy ...` line from
+`/etc/nginx/conf.d/default.conf` (override the file with a bind mount) or send `unload=()` from the
+proxy. Fitdraw does not depend on `unload`: local changes are also flushed on
+`blur`/`visibilitychange`, and closing the tab drops the socket anyway.
+
+To see what your browser decided for the page:
+
+```js
+document.featurePolicy.allowsFeature('unload'); // false = denied, handlers will not run
+```
 
 ### Optional: protect `/mcp` at the proxy
 

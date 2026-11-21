@@ -122,8 +122,21 @@ try {
   } else {
     console.log(`[patch-mcp] ${UI_FILE}: no origin placeholder (CDN mode?)`);
   }
-  if (ui.includes("https://esm.sh")) {
-    console.error("[patch-mcp] ERROR: MCP UI still references esm.sh");
+  // Compare hostnames instead of substring-matching the URL: "https://esm.sh"
+  // also appears inside "https://esm.sh.example.com" (or a query string), so a
+  // plain includes() check is both too weak and a CodeQL finding
+  // (js/incomplete-url-substring-sanitization).
+  const cdnHosts = [...ui.matchAll(/https?:\/\/[^\s"'`<>()\\]+/g)]
+    .map((match) => {
+      try {
+        return new URL(match[0]).hostname;
+      } catch {
+        return null;
+      }
+    })
+    .filter((host) => host === "esm.sh" || (host || "").endsWith(".esm.sh"));
+  if (cdnHosts.length > 0) {
+    console.error(`[patch-mcp] ERROR: MCP UI still references esm.sh (${[...new Set(cdnHosts)].join(", ")})`);
     failures += 1;
   }
 } catch {

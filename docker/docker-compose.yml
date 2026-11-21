@@ -1,4 +1,4 @@
-name: desenho
+name: fitdraw
 
 # Fitdraw runs as a single container: nginx + collaboration room + MCP server +
 # encrypted scene store, all supervised on port 80.
@@ -10,9 +10,9 @@ name: desenho
 # layout (frontend + excalidraw-room) is gone.
 
 services:
-  desenho:
+  fitdraw:
     image: ghcr.io/ivancarlosti/fitdraw:latest
-    container_name: desenho
+    container_name: fitdraw
     ports:
       - "${FITDRAW_PORT:-3030}:80"
     environment:
@@ -26,12 +26,8 @@ services:
       ENABLE_ROOM: ${ENABLE_ROOM:-1}
       ENABLE_MCP: ${ENABLE_MCP:-1}
     volumes:
-      - desenho-scenes:/var/lib/fitdraw/scenes
+      - ./scenes:/var/lib/fitdraw/scenes
     restart: unless-stopped
     # Room state is in memory, so one replica per deployment.
     deploy:
       replicas: 1
-
-volumes:
-  desenho-scenes:
-
