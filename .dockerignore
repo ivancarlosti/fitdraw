@@ -1,0 +1,15 @@
+docs
+plans
+docker
+.github
+
+.git
+.gitignore
+node_modules
+*.zip
+*.mcpb
+.env
+.env.*
+!.env.example
+tmp
+.DS_Store

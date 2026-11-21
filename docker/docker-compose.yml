@@ -1,24 +1,37 @@
 name: desenho
 
-services:
-  excalidraw:
-    image: ghcr.io/ivancarlosti/fitdraw:latest
-    container_name: desenho-frontend
-    ports:
-      - "3030:80"
-    environment:
-      - VITE_APP_WS_SERVER_URL=https://fitdraw.example.com
-      - VITE_APP_PLUS_APP_URL=false
-    restart: unless-stopped
-    entrypoint: /bin/sh
-    command: >
-      -c "echo 'Patching WebSocket URL...' &&
-          find /usr/share/nginx/html/ -type f -name '*.js' -exec sed -i \"s|https://oss-collab.excalidraw.com|$${VITE_APP_WS_SERVER_URL}|g\" {} + &&
-          nginx -g 'daemon off;'"
+# Fitdraw runs as a single container: nginx + collaboration room + MCP server +
+# encrypted scene store, all supervised on port 80.
+#
+#   cp .env.example .env    # then set FITDRAW_PUBLIC_URL
+#   docker compose up -d
+#
+# This file is the only compose file in the repository; the previous two-service
+# layout (frontend + excalidraw-room) is gone.
 
-  excalidraw-room:
-    image: excalidraw/excalidraw-room:latest
-    container_name: desenho-backend
+services:
+  desenho:
+    image: ghcr.io/ivancarlosti/fitdraw:latest
+    container_name: desenho
     ports:
-      - "8082:80"
+      - "${FITDRAW_PORT:-3030}:80"
+    environment:
+      # Public origin used for MCP export links. Must match what users type.
+      FITDRAW_PUBLIC_URL: ${FITDRAW_PUBLIC_URL:?create docker/.env from .env.example and set FITDRAW_PUBLIC_URL}
+      # Days an encrypted scene stays on disk (0 keeps them forever).
+      SCENE_TTL_DAYS: ${SCENE_TTL_DAYS:-30}
+      # Optional shared secret for POST /mcp (Authorization: Bearer ...).
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-}
+      # Collaboration room is same-origin; leave as-is unless proxying elsewhere.
+      ENABLE_ROOM: ${ENABLE_ROOM:-1}
+      ENABLE_MCP: ${ENABLE_MCP:-1}
+    volumes:
+      - desenho-scenes:/var/lib/fitdraw/scenes
     restart: unless-stopped
+    # Room state is in memory, so one replica per deployment.
+    deploy:
+      replicas: 1
+
+volumes:
+  desenho-scenes:
+

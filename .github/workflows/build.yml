@@ -235,6 +235,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🧷 Validate upstream pins
+        id: pins
+        if: steps.dockerfile_check.outputs.exists == 'true'
+        run: |
+          set -euo pipefail
+
+          MCP_VERSION=$(sed -n 's/^version=//p' .excalidraw-mcp)
+          MCP_SHA=$(sed -n 's/^sha256=//p' .excalidraw-mcp)
+          ROOM_DIGEST=$(tr -d '[:space:]' < .excalidraw-room-digest)
+
+          for value in "$MCP_VERSION" "$MCP_SHA" "$ROOM_DIGEST"; do
+            if [ -z "$value" ]; then
+              echo "::error::A pin file is empty (.excalidraw-mcp / .excalidraw-room-digest)"
+              exit 1
+            fi
+          done
+
+          # Every ARG default must agree with the pin files; the update workflow
+          # rewrites both together, so a mismatch means a half-applied bump.
+          MISMATCH=$(grep -E '^ARG (MCP_VERSION|MCP_VERSION_SHA256|EXCALIDRAW_ROOM_DIGEST)=' Dockerfile \
+            | grep -vE "=${MCP_VERSION}$|=${MCP_SHA}$|=${ROOM_DIGEST}$" || true)
+          if [ -n "$MISMATCH" ]; then
+            echo "::error::Dockerfile pins disagree with .excalidraw-* files:"
+            echo "$MISMATCH"
+            exit 1
+          fi
+
+          {
+            echo "mcp_version=$MCP_VERSION"
+            echo "mcp_sha=$MCP_SHA"
+            echo "room_digest=$ROOM_DIGEST"
+          } >> "$GITHUB_OUTPUT"
+          echo "Pins: mcp=${MCP_VERSION} room=${ROOM_DIGEST}"
+
       - name: 🐳 Build and Push Docker image
         if: steps.dockerfile_check.outputs.exists == 'true'
         uses: docker/build-push-action@v7
@@ -251,7 +285,83 @@ jobs:
           # Dockerfile defaults (e.g. ARG VERSION=dev / COMMIT=unknown) are used.
           # COMMIT is the commit the tag points at (not the branch head at
           # dispatch time), so `docker inspect` always resolves to the built tree.
+          # The three upstream pins come from the files the update workflow
+          # maintains, and every ARG default above was just checked against them.
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
             COMMIT=${{ steps.version.outputs.commit }}
+            EXCALIDRAW_ROOM_DIGEST=${{ steps.pins.outputs.room_digest }}
+            MCP_VERSION=${{ steps.pins.outputs.mcp_version }}
+            MCP_VERSION_SHA256=${{ steps.pins.outputs.mcp_sha }}
           tags: ${{ steps.version.outputs.tags }}
+
+  smoke:
+    name: 🚬 Smoke test (single arch)
+    runs-on: ubuntu-latest
+    needs: build
+    # The scheduled job only refreshes an existing tag; the smoke test runs on
+    # releases and manual rebuilds, where a broken image would be published.
+    if: github.event_name != 'schedule'
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.version }}
+
+      - name: 🏗️ Build linux/amd64 locally
+        run: docker build --platform linux/amd64 -t fitdraw:smoke .
+
+      - name: 🧪 Run container and probe endpoints
+        run: |
+          set -euo pipefail
+          docker run -d --name smoke -p 3030:80 \
+            -e FITDRAW_PUBLIC_URL=http://localhost:3030 fitdraw:smoke
+
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:3030/healthz >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+
+          curl -fsS http://localhost:3030/healthz
+          curl -fsS -o /dev/null -w 'index=%{http_code}\n' http://localhost:3030/
+          curl -fsS -o /dev/null -w 'mcp-ui=%{http_code}\n' http://localhost:3030/mcp-ui/manifest.json
+
+          # Streamable HTTP MCP: list tools, then export a scene and fetch the blob.
+          MCP_TOOLS=$(curl -fsS http://localhost:3030/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
+          echo "$MCP_TOOLS"
+          for tool in read_me create_view export_to_excalidraw save_checkpoint read_checkpoint; do
+            echo "$MCP_TOOLS" | grep -q "\"$tool\"" || { echo "missing tool $tool"; exit 1; }
+          done
+
+          EXPORT=$(curl -fsS http://localhost:3030/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"export_to_excalidraw","arguments":{"json":"{\"type\":\"excalidraw\",\"version\":2,\"elements\":[],\"appState\":{},\"files\":{}}"}}}')
+          echo "$EXPORT"
+          echo "$EXPORT" | grep -q 'http://localhost:3030/#json=' || { echo "export did not use FITDRAW_PUBLIC_URL"; exit 1; }
+
+          ID=$(echo "$EXPORT" | grep -o '#json=[A-Za-z0-9_-]*' | head -1 | cut -d= -f2)
+          curl -fsS -o /dev/null -w "scene=$ID status=%{http_code}\n" "http://localhost:3030/api/v2/$ID"
+
+          # The library must survive the host scrub; nothing else may.
+          docker exec smoke sh -c \
+            "grep -rhoE 'https?://([a-z0-9-]+[.])*excalidraw[.]com' /usr/share/nginx/html/assets | sort -u" \
+            | grep -q 'libraries.excalidraw.com'
+          FORBIDDEN=$(docker exec smoke sh -c \
+            "grep -rhoE 'https?://([a-z0-9-]+[.]|)*excalidraw[.]com' /usr/share/nginx/html/assets | grep -v libraries | sort -u" \
+            || true)
+          echo "forbidden hosts: ${FORBIDDEN:-none}"
+          test -z "$FORBIDDEN"
+
+      - name: 📜 Container logs on failure
+        if: failure()
+        run: docker logs smoke
+
+      - name: 🧹 Cleanup
+        if: always()
+        run: docker rm -f smoke || true
+

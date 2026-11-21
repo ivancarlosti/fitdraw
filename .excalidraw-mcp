@@ -1,0 +1,4 @@
+# Pin for excalidraw/excalidraw-mcp, consumed by the Dockerfile ARGs of the same
+# name. The update workflow rewrites both lines from the GitHub release metadata.
+version=v0.3.2
+sha256=2b494012b5fee5937f9f7b86f04a76cc4a91ec843ee3339b93e4e15e415274ff

@@ -1,0 +1,13 @@
+# Environment files (examples stay tracked)
+.env
+.env.*
+!.env.example
+!docker/.env.example
+
+# Local build/test leftovers
+node_modules/
+tmp/
+*.zip
+*.mcpb
+.mcp-ui-cache/
+.DS_Store
