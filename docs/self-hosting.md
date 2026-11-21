@@ -127,7 +127,7 @@ Everything stateful lives in one directory:
 |---|---|---|
 | `/var/lib/fitdraw/scenes` | Encrypted scene blobs (`<id>.bin`, 0600) | Yes, if share links matter |
 | `/tmp/mcp` | Patched MCP App, recreated at every start | No |
-| `/tmp/mcp-checkpoints` | MCP checkpoints, lost on restart | No |
+| `/tmp/excalidraw-mcp-checkpoints` | MCP checkpoints (`os.tmpdir()`), lost on restart | No |
 
 ```bash
 # backup
